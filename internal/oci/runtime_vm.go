@@ -919,9 +919,11 @@ func (r *runtimeVM) deleteContainer(c *Container, force bool) error {
 		return err
 	}
 
-	_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
-	if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
-		return err
+	if r.task != nil {
+		_, err := r.task.Shutdown(r.ctx, &task.ShutdownRequest{ID: c.ID()})
+		if err != nil && !errors.Is(err, ttrpc.ErrClosed) && !force {
+			return err
+		}
 	}
 
 	r.Lock()
@@ -1334,6 +1336,10 @@ func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal) error {
 }
 
 func (r *runtimeVM) remove(ctrID, execID string) error {
+	if r.task == nil {
+		return nil
+	}
+
 	if _, err := r.task.Delete(r.ctx, &task.DeleteRequest{
 		ID:     ctrID,
 		ExecID: execID,
